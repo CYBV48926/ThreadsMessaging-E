@@ -77,9 +77,36 @@ static int waitingOnDevice = 0;
 int SchedulerEntryPoint(void* arg)
 {
     // TODO: check for kernel mode
+	checkKernelMode("SchedulerEntryPoint");
+	uint32_t psr = get_psr();
+	int kernelMode = psr & PSR_KERNEL_MODE != 0;
+    if (!kernelMode)
+    {
+        console_output(FALSE, "SchedulerEntryPoint should be called in kernel mode. Halting...\n");
+        stop(1);
+	}
+    else
+        {
+        console_output(FALSE, "SchedulerEntryPoint called in kernel mode. Continuing...\n");
+	}
+
+
 
     /* Disable interrupts */
     disableInterrupts();
+	// check if interrupts are disabled
+	psr = get_psr();
+
+
+	if (psr & PSR_INTERRUPTS)
+    {
+        console_output(FALSE, "Interrupts are enabled. Halting...\n");
+        stop(1);
+    }
+     else
+    {
+        console_output(FALSE, "Interrupts are disabled. Continuing...\n");
+    }
 
     /* set this to the real check_io function. */
     check_io = check_io_messaging;

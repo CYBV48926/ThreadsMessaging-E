@@ -1,5 +1,5 @@
 
-* ------------------------------------------------------------------------
+/* ------------------------------------------------------------------------
 Messaging.c
 College of Applied Science and Technology
 The University of Arizona
@@ -7,7 +7,7 @@ CYBV 489
 
 Student Names : <add your group members here>
 
------------------------------------------------------------------------- * /
+------------------------------------------------------------------------ */
 #include <Windows.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,7 +26,7 @@ static void nullsys(system_call_arguments_t* args);
  *   void (*)(char deviceId[32], uint8_t command, uint32_t status, void *pArgs)
  */
 
-static void clock_interupt_handler(void* device, uint8_t command, uint32_t status, void* pArgs);
+static void clock_interrupt_handler(void* device, uint8_t command, uint32_t status, void* pArgs);
 static void InitializeHandlers();
 static int check_io_messaging(void);
 extern int MessagingEntryPoint(void*);
@@ -527,6 +527,18 @@ int check_io_messaging(void)
     }
     return 0;
 }
+static void terminal_interrupt_handler(void* device, uint8_t command, uint32_t status, void* pArgs)
+
+    {
+        // device is expected to be the device ID (int)
+        int deviceId = (int)(intptr_t)device;
+        if (deviceId < 0 || deviceId >= THREADS_MAX_DEVICES) {
+            return;
+        }
+        int mbox = devices[deviceId].deviceMbox;
+        int term_status = (int)status;
+        mailbox_send(mbox, &term_status, sizeof(int), FALSE); // non-blocking send
+    }
 
 static void InitializeHandlers()
 {
@@ -544,17 +556,7 @@ static void InitializeHandlers()
     /*
      * Terminal interrupt handler: sends status to the correct terminal mailbox
      */
-    static void terminal_interrupt_handler(void* device, uint8_t command, uint32_t status, void* pArgs)
-    {
-        // device is expected to be the device ID (int)
-        int deviceId = (int)(intptr_t)device;
-        if (deviceId < 0 || deviceId >= THREADS_MAX_DEVICES) {
-            return;
-        }
-        int mbox = devices[deviceId].deviceMbox;
-        int term_status = (int)status;
-        mailbox_send(mbox, &term_status, sizeof(int), FALSE); // non-blocking send
-    }
+    
 
 }
 
@@ -583,7 +585,7 @@ static inline void checkKernelMode(const char* functionName)
         stop(1);
     }
 }
-static void clock_interupt_handler(void* device, uint8_t command, uint32_t status, void* pArgs)
+static void clock_interrupt_handler(void* device, uint8_t command, uint32_t status, void* pArgs)
 {
     static int count = 0;
     int clock_result = 0;
